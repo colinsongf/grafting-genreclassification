@@ -394,9 +394,9 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 
 					# remove the unused features from the training set, they can be kept in the test set as the weights will be 0 from training when not used
 					# and we need the values also for features not in the training set, as they may be in a training set for another genre
-					os.system("python2 remove_fs.py tmp/selected-features < tmp/train-"+basename+"-"+str(k)+".txt" + " > tmp/train_subset.txt") 
+					os.system("./remove_fs.py tmp/selected-features < tmp/train-"+basename+"-"+str(k)+".txt" + " > tmp/train_subset.txt") 
 					os.system("cp tmp/develop-"+basename+"-"+str(k)+".txt tmp/test_subset-" + basename + ".txt")
-					#os.system("python2 remove_fs.py tmp/selected-features < tmp/develop-"+basename+"-"+str(k)+".txt" + " > tmp/test_subset-" + basename + ".txt") 
+					#os.system("./remove_fs.py tmp/selected-features < tmp/develop-"+basename+"-"+str(k)+".txt" + " > tmp/test_subset-" + basename + ".txt") 
 					os.system("perl -pi -e 's/^1 0.*\n//g' tmp/test_subset-" + basename + ".txt") # remove 1 0
 					os.system("perl -pi -e 's/^2.*\n//g' tmp/test_subset-" + basename + ".txt") # remove 2
 					os.system("perl -pi -e 's/^0.*\n//g' tmp/test_subset-" + basename + ".txt") # remove 0 .....
@@ -405,7 +405,7 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 					train('tmp/train_subset.txt',0,0,'tmp/weights-'+basename+'.txt','tmp/tmp.proc')
 
 					if k == 0: # only 1 time, as it is for the test set
-						os.system("python2 remove_fs.py tmp/selected-features < tmp/training-"+basename+".txt" + " > tmp/train_subset_for_test.txt") 
+						os.system("./remove_fs.py tmp/selected-features < tmp/training-"+basename+".txt" + " > tmp/train_subset_for_test.txt") 
 						train('tmp/train_subset_for_test.txt',0,0,'tmp/weights-for-test-'+basename+'.txt','tmp/tmp-full-'+basename+'.proc')
 
 					#os.system('cp tmp/weights'+basename+'.txt  tmp/weights-train'+trainbase+'-test'+trainbase+'-'+str(i)+'-'+str(k)+'.txt')
@@ -527,9 +527,9 @@ def generateFiles(trainfile,testfile, featurefile, exclusionfile, basename):
 	outfile.close()
 
 	# remove lunghezzaDOC
-	os.system("python2 remove_fs.py tmp/included.txt < " + trainfile + " > tmp/training-" + basename+".txt") 
+	os.system("./remove_fs.py tmp/included.txt < " + trainfile + " > tmp/training-" + basename+".txt") 
 
-	os.system("python2 remove_fs.py tmp/included.txt < " + testfile + " > tmp/testing-" + basename+".txt")
+	os.system("./remove_fs.py tmp/included.txt < " + testfile + " > tmp/testing-" + basename+".txt")
 	print(" Done!")
 
 
