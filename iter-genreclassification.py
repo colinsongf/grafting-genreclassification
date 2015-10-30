@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 import math
 import string
 import os
@@ -118,7 +119,7 @@ def sortedfeatnames(filename,sorting):
 
 # trains using tinyest
 def train(trainfilename,l1=0,grafting_n=0,stdoutfile="",stderrfile=""):
-	command = tinyestpath + "tinyest "
+	command = "tinyest "
 	
 	if l1 > 0:
 		command += "--l1 " + str(l1) + " "
@@ -326,56 +327,6 @@ def findBestL1(basename):
 	print("   Done! (Best L1: " + str(bestl1) + ")")
 	return(bestl1)
 
-
-# evaluates the performance over testset for an increasing number of features
-# for the multilevel classifier, weightfiles for the binary classifiers
-# should already be present (see weightfiles below for presumed filenames)
-def evaluateFeatNmulti(testfile,imageformat="pdf",balanced=True):
-
-	outfile = open('results/results-increasing-featurecount2.txt','w')
-	
-	balancedstr = ''
-	if balanced:
-		balancedstr = '-balanced'
-
-	accuracies = []
-	curlength = 0
-	readFiles = ['','','','']
-	for i in range(1,100):
-		prevcurlength = curlength
-
-		weightfiles = ['weights-traingenre_Journalism' + balancedstr + '-testgenre_Journalism-' + str(i) + '.txt','weights-traingenre_ScientificProse' + balancedstr + '-testgenre_ScientificProse-' + str(i) + '.txt','weights-traingenre_Educational' + balancedstr + '-testgenre_Educational-' + str(i) + '.txt','weights-traingenre_Literature' + balancedstr + '-testgenre_Literature-' + str(i) + '.txt']
-		
-		cats = ['JOU','SCI','EDU','LIT']
-
-		for j in range(0,len(weightfiles)):
-			if os.path.exists('tmp/'+weightfiles[j]):
-				readFiles[j] = 'tmp/'+weightfiles[j] # if it doesn't exist, then we keep the last one which exists
-				curlength = i
-
-		# if we did not find any new files prevcurlength == curlength, so we won't calculate accuracy
-		if prevcurlength < curlength:
-			accuracy = multileveltest(testfile,readFiles,cats,outfilename='results/mlclassification' + balancedstr + '-' + str(i) +'.txt')
-
-			accuracies.append(accuracy) # store accuracies
-			if (i == 1):
-				print(str(i) + " feature: " + str(accuracy))
-				outfile.write(str(i) + " feature: " + str(accuracy) + "\n")
-			else:
-				print(str(i) + " features: " + str(accuracy))
-				outfile.write(str(i) + " features: " + str(accuracy) + "\n")
-	
-
-	# plot the performance and store in results.pdf
-	plt.ylim([0,100])
-	plt.plot(range(1,len(accuracies)+1),accuracies)
-	plt.xlabel('Number of features (for each individual classifier)')
-	plt.ylabel('Accuracy (%)')
-	plt.savefig('results/results-increasing-featurecount'+ balancedstr +'.'+imageformat, bbox_inches=0)
-	outfile.close()
-	print("\nCompleted!\n")
-
-
 # creates 10-fold cross validation set and then evaluates the performance
 # over an increasing number of features 
 def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1vals):
@@ -579,33 +530,11 @@ def generateFiles(trainfile,testfile, featurefile, exclusionfile, basename):
 	os.system("python2 remove_fs.py tmp/included.txt < " + testfile + " > tmp/testing-" + basename+".txt")
 	print(" Done!")
 
-# located in input/
 
-tinyestpath = "/net/aistaff/dekok/git/tinyest/" # note the trailing slash
-if len(sys.argv) == 3:
-	trainingfile = "input/" + sys.argv[1]
-	testingfile = "input/" + sys.argv[2]
-	featurefile = "input/features.txt"
-	excludedfile = "input/excluded.txt"
-	imageformat = "png" # pdf is also possible
-	basename = sys.argv[1].replace('.orig','').replace('.txt','').replace('g_train','')
-	generateFiles(trainingfile,testingfile,featurefile,excludedfile,basename)
-	bestL1 = findBestL1(basename)
-	evaluateFeatN(bestL1,imageformat,featurefile,basename)
-elif len(sys.argv) == 2:
-	
-elif len(sys.argv) == 1:
-	trainfiles = ['input/train_Journalism.parsed.grafting', 'input/train_Educational.parsed.grafting','input/train_ScientificProse.parsed.grafting','input/train_Literature.parsed.grafting'] # general training files
-	cats = ['JOU','EDU','SCI','LIT']
-	featurefile = "input/FeatNames.txt"
-	imageformat = "png"
-	maxkval = 10
-	bestL1 = -1
-	findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxkval,bestL1)
-	
-	#evaluateFeatNmulti('input/' + sys.argv[1],"png",False)
-# Example calls
-#~/env/bin/python3 iter-genreclassification.py # for evaluating the performance for increasing features
+trainfiles = ['input/train_Journalism.parsed.grafting', 'input/train_Educational.parsed.grafting','input/train_ScientificProse.parsed.grafting','input/train_Literature.parsed.grafting'] # general training files
+cats = ['JOU','EDU','SCI','LIT']
+featurefile = "input/FeatNames.txt"
+findOptimalFeatNmulti(trainfiles,cats,"png","input/FeatNames.txt",10,-1)
 
 
 
