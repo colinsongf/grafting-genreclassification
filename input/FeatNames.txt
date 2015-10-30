@@ -97,7 +97,7 @@ WORD_il
 WORD_in
 WORD_a
 WORD_un
-WORD_è
+WORD_Ã¨
 WORD_per
 WORD_si
 WORD_del
@@ -114,7 +114,7 @@ WORD_al
 WORD_dei
 WORD_sono
 WORD_dell'
-WORD_più
+WORD_piÃ¹
 WORD_ha
 WORD_delle
 WORD_gli
@@ -150,7 +150,7 @@ WORD_suo
 WORD_E
 WORD_hanno
 WORD_Ma
-WORD_può
+WORD_puÃ²
 WORD_su
 WORD_sul
 WORD_degli
@@ -173,14 +173,14 @@ WORD_tutti
 WORD_nell'
 WORD_esempio
 WORD_/
-WORD_perché
+WORD_perchÃ©
 WORD_Per
 WORD_tutto
 WORD_Le
 WORD_anni
 WORD_sempre
 WORD_testo
-WORD_piú
+WORD_piÃº
 WORD_modo
 WORD_senza
 WORD_parole

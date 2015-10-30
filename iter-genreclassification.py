@@ -6,6 +6,7 @@ import os
 import random
 import sys
 import matplotlib
+import codecs
 from collections import defaultdict
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
@@ -507,7 +508,7 @@ def generateFiles(trainfile,testfile, featurefile, exclusionfile, basename):
 	features = []
 	features.append("IGNORED")
 
-	thefile = open(featurefile, 'r')
+	thefile = codecs.open(featurefile, 'r','utf-8')
 	for line in thefile:
 		features.append(line.strip())
 	thefile.close()
