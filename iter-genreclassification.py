@@ -533,10 +533,4 @@ def generateFiles(trainfile,testfile, featurefile, exclusionfile, basename):
 
 trainfiles = ['input/train_Journalism.parsed.grafting', 'input/train_Educational.parsed.grafting','input/train_ScientificProse.parsed.grafting','input/train_Literature.parsed.grafting'] # general training files
 cats = ['JOU','EDU','SCI','LIT']
-featurefile = "input/FeatNames.txt"
 findOptimalFeatNmulti(trainfiles,cats,"png","input/FeatNames.txt",10,-1)
-
-
-
-
-
