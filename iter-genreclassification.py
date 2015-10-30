@@ -59,6 +59,7 @@ def k_fold_cross_validation(X, K, randomise = False):
 # gets number of lines in file
 def file_len(fname):
 	f = open(fname,'r')
+	i = 0
 	for i, l in enumerate(f):
 		pass
 	return i + 1
