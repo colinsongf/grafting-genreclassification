@@ -106,7 +106,7 @@ def sortedfeatnames(filename,sorting):
 	features = []
 	features.append("IGNORED")
 
-	thefile = open(filename, 'r')
+	thefile = codecs.open(filename, 'r','utf-8')
 	for line in thefile:
 		features.append(line.strip())
 
