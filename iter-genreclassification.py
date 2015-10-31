@@ -445,14 +445,14 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 					if (j == (len(featureslist)-1)): 
 						if (len(featureslist[j]) >= i) : 
 							outfile.write(cats[j] + ' = ' + featureslist[j][i-1] + ']\n')
-							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore') + ']\n',end="")
+							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore').decode('ascii') + ']\n',end="")
 						else:
 							outfile.write(cats[j] + ' = NONE]\n')
 							print(cats[j] + ' = NONE]\n',end="")
 					else:
 						if (len(featureslist[j]) >= i) : 
 							outfile.write(cats[j] + ' = ' + featureslist[j][i-1] + ', ')
-							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore') + ', ',end="")
+							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore').decode('ascii') + ', ',end="")
 						else:
 							outfile.write(cats[j] + ' = NONE, ')
 							print(cats[j] + ' = NONE, ',end="")
@@ -466,14 +466,14 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 					if (j == (len(featureslist)-1)): 
 						if (len(featureslist[j]) >= i) : 
 							outfile.write(cats[j] + ' = ' + featureslist[j][i-1] + ']\n')
-							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore') + ']\n',end="")
+							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore').decode('ascii') + ']\n',end="")
 						else:
 							outfile.write(cats[j] + ' = NONE]\n')
 							print(cats[j] + ' = NONE]\n',end="")
 					else:
 						if (len(featureslist[j]) >= i) : 
 							outfile.write(cats[j] + ' = ' + featureslist[j][i-1] + ', ')
-							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore') + ', ',end="")
+							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore').decode('ascii') + ', ',end="")
 						else:
 							outfile.write(cats[j] + ' = NONE, ')
 							print(cats[j] + ' = NONE, ',end="")
