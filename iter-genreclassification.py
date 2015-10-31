@@ -332,7 +332,7 @@ def findBestL1(basename):
 # creates 10-fold cross validation set and then evaluates the performance
 # over an increasing number of features 
 def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1vals):
-	outfile = codes.open('results/results-increasing-featurecount.txt','w','utf-8')
+	outfile = codecs.open('results/results-increasing-featurecount.txt','w','utf-8')
 
 	featureslist = []
 	trainbases = []
