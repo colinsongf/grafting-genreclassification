@@ -66,7 +66,7 @@ def file_len(fname):
 	return i + 1
 
 # stores 10-fold cross validation sets in train-[basename]-#.txt (#: 0-9) and
-# validation-[basename]-#.txt
+# develop-[basename]-#.txt
 def generateKfold(trainingfilename,basename,kval):
 	global develdocs, traindocs
 
@@ -122,7 +122,7 @@ def sortedfeatnames(filename,sorting):
 
 # trains using tinyest
 def train(trainfilename,l1=0,grafting_n=0,stdoutfile="",stderrfile=""):
-	command = "tinyest "
+	command = tinyestpath + "tinyest "
 	
 	if l1 > 0:
 		command += "--l1 " + str(l1) + " "
@@ -139,7 +139,7 @@ def train(trainfilename,l1=0,grafting_n=0,stdoutfile="",stderrfile=""):
 
 # runs a single multilevel test given all necessary weightfiles and the associated categories (cats)
 # of the testfile with filename, returns the average performance
-def multileveltest(filename,weightfiles,cats,outfilename='results/mlclassification.txt'):
+def multileveltest(filename,weightfiles,cats,outfilename='results/classification.txt'):
 	
 	weightslist = defaultdict(list)
 	score = {}
@@ -226,7 +226,8 @@ def multileveltest(filename,weightfiles,cats,outfilename='results/mlclassificati
 	return(accuracy)
 
 
-# runs a single bi-level test
+# runs a single twolevel test (correct vs. incorrect)
+# used to determine the best L1 value for each genre
 def runtest(filename,weights,outfilename='tmp/classification.txt'):
 	thefile = open(filename, 'r')
 	outfile = open(outfilename, 'w')
@@ -294,7 +295,7 @@ def runtest(filename,weights,outfilename='tmp/classification.txt'):
 def findBestL1(basename):
 	trainingfile = "tmp/training-"+basename+".txt"
 	print("2. Determining best L1 (based on 10-fold cross validation):")
-	generateKfold(trainingfile,basename,10) # results in 10 train-[basename]-#.txt and test-[basename]-#.txt files
+	generateKfold(trainingfile,basename,10) # results in 10 train-[basename]-#.txt and develop-[basename]-#.txt files
 
 	# l1s to test
 	l1s = [0.00000000001,0.0000000001,0.000000001,0.00000001,0.0000001,0.000001,0.00001,0.0001,0.001,0.01,0.1,1]
@@ -330,11 +331,26 @@ def findBestL1(basename):
 	print("   Done! (Best L1: " + str(bestl1) + ")")
 	return(bestl1)
 
+
 # creates 10-fold cross validation set and then evaluates the performance
 # over an increasing number of features 
 def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1vals):
-	outfile = codecs.open('results/results-increasing-featurecount.txt','w','utf-8')
+	# create results folders
+	if not os.path.exists('results'):
+		os.makedirs('results')
 
+	if not os.path.exists('results/classification-crossvalidation'):
+		os.makedirs('results/classification-crossvalidation')
+
+	if not os.path.exists('results/classification-testset'):
+		os.makedirs('results/classification-testset')
+
+	if not os.path.exists('tmp'):
+		os.makedirs('tmp')
+
+
+	outfile = codecs.open('results/results-increasing-featurecount-crossvalidation.txt','w','utf-8')
+	outfile2 = codecs.open('results/results-increasing-featurecount-testset.txt','w','utf-8')
 	featureslist = []
 	trainbases = []
 	# generating the ranking using grafting on the separate dataset
@@ -342,10 +358,11 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 		f = trainfiles[i]
 		print(f)
 
-		##basename = f.replace('input/','').replace('.orig','').replace('.txt','').replace('g_train','')
 		basename = f.replace('input/','').replace('.parsed.grafting','').replace('.txt','').replace('train','genre')
-		## results in tmp/training-[basename].txt and tmp/testing-[basename].txt files
-		generateFiles(f,f.replace('traingenre','testgenre'),featurefile,'input/excluded.txt',basename)
+		
+		# results in new input files, where features are excluded from the training data
+		# if these are specified in excluded.txt 
+		excludeFeatures(f,featurefile,'input/excluded.txt',basename)
 		if bestL1vals == -1: 
 			bestL1 = findBestL1(basename) # determine best L1
 		else: 
@@ -376,7 +393,17 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 	setops = []
 	sedowns = []
 
-	for i in range(1,400): # max 391 features
+	# determine maximum number of features
+	maxfeatAllGenres = 0
+	for i in range(0,len(trainbases)):
+		basename = trainbases[i]
+
+		# extract the first i features from the feature ranking (some features may have been culled during the l1 selection)
+		maxfeatures = int(os.popen('grep \"^\*\" tmp/weights-'+basename+'.proc | wc -l').read().strip())
+		maxfeatAllGenres = max(maxfeatAllGenres,maxfeatures)
+
+	
+	for i in range(1,maxfeatAllGenres+1):
 		curlength = 0
 		curacc = []
 		fullweights = []
@@ -386,44 +413,49 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 			for j in range(0,len(trainbases)):
 				basename = trainbases[j]
 
-				# extract the first i features from the feature ranking
+				# extract the first i features from the feature ranking (some features may have been culled during the l1 selection)
 				maxfeatures = int(os.popen('grep \"^\*\" tmp/weights-'+basename+'.proc | wc -l').read().strip())
 
-				if i <= maxfeatures: # otherwise we don't redo training,
+				if i <= maxfeatures: # if this genre had more features culled and we have reached the maximum feature count, we don't redo training
 					curlength += 1
+
+					# extract top i features from the ranking
 					os.system("grep \"^\*\" tmp/weights-"+basename+".proc | head -n " + str(i) + " | sed 's/^\* //g' > tmp/selected-features")
 
 					# remove the unused features from the training set, they can be kept in the test set as the weights will be 0 from training when not used
 					# and we need the values also for features not in the training set, as they may be in a training set for another genre
 					os.system("./remove_fs.py tmp/selected-features < tmp/train-"+basename+"-"+str(k)+".txt" + " > tmp/train_subset.txt") 
 					os.system("cp tmp/develop-"+basename+"-"+str(k)+".txt tmp/test_subset-" + basename + ".txt")
-					#os.system("./remove_fs.py tmp/selected-features < tmp/develop-"+basename+"-"+str(k)+".txt" + " > tmp/test_subset-" + basename + ".txt") 
 					os.system("perl -pi -e 's/^1 0.*\n//g' tmp/test_subset-" + basename + ".txt") # remove 1 0
 					os.system("perl -pi -e 's/^2.*\n//g' tmp/test_subset-" + basename + ".txt") # remove 2
 					os.system("perl -pi -e 's/^0.*\n//g' tmp/test_subset-" + basename + ".txt") # remove 0 .....
 					os.system("perl -pi -e 's/^1 /" + cats[j]+" /g' tmp/test_subset-" + basename + ".txt") # replace 1 with category
-					# train the model on the subset of features (without l1 and grafting) and evaluate on the testset
+					
+					# train the model on the subset of features (without l1 and grafting) using the 10-fold crossvalidation training set 
 					train('tmp/train_subset.txt',0,0,'tmp/weights-'+basename+'.txt','tmp/tmp.proc')
 
-					if k == 0: # only 1 time, as it is for the test set
+					if k == 0: # we also train the model on the full data set
 						os.system("./remove_fs.py tmp/selected-features < tmp/training-"+basename+".txt" + " > tmp/train_subset_for_test.txt") 
 						train('tmp/train_subset_for_test.txt',0,0,'tmp/weights-for-test-'+basename+'.txt','tmp/tmp-full-'+basename+'.proc')
 
-					#os.system('cp tmp/weights'+basename+'.txt  tmp/weights-train'+trainbase+'-test'+trainbase+'-'+str(i)+'-'+str(k)+'.txt')
-				weightfiles.append('tmp/weights-'+basename+'.txt')
-				fullweights.append('tmp/weights-for-test-'+basename+'.txt')
+				weightfiles.append('tmp/weights-'+basename+'.txt') # store weightfiles for the 4 genres, based on 10-fold cross validation set
+				if k==0:
+					fullweights.append('tmp/weights-for-test-'+basename+'.txt') 
 			
-			if curlength > 0:
+			if curlength > 0: # if at least one additional feature added (should always be the case)
+				# run test using the 10-fold cross validation test set, on the basis of weights obtained from the 10-fold cross validation training phase 
 				os.system("cat tmp/test_subset-*.txt > tmp/test_subset.txt")
-				curacc.append(multileveltest('tmp/test_subset.txt',weightfiles,cats,'results/mlclassification-'+ str(i) + '-' + str(k) +'.txt'))
+				curacc.append(multileveltest('tmp/test_subset.txt',weightfiles,cats,'results/classification-crossvalidation/classification-cv-'+ str(i) + '-' + str(k) +'.txt'))
 		
 			if k==0:
-				testacc = multileveltest('input/testing.grafting',fullweights,cats,'results/mlclassification-test-'+ str(i) +'.txt')
-
+				# run test using the complete test set, on the basis of weights obtained from the full training set
+				testacc = multileveltest('input/testing.grafting',fullweights,cats,'results/classification-testset/classification-test-'+ str(i) +'.txt')
+ 
 
 		if curlength > 0:
-			avgacc = m(curacc)
+			avgacc = m(curacc) # mean of 10-fold cross validation performance on 10-fold cv test set
 
+			# create confidence interval
 			if maxk > 1:
 				setop = avgacc + 1.96*SE(curacc,avgacc)
 				sedown = avgacc - 1.96*SE(curacc,avgacc)
@@ -431,57 +463,64 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 				setop = avgacc
 				sedown = avgacc
 			
-			accuracies.append(avgacc) # store accuracies
+			accuracies.append(avgacc) # store accuracies associated with the number of features
 			setops.append(setop)
 			sedowns.append(sedown)
-			testaccs.append(testacc)
+			testaccs.append(testacc) # similarly for accuracy on test set 
 
 			if (i == 1):
 				print(str(i) + " feature: " + str(avgacc)+ " (" + str(maxk) + "-fold) / " + str(testacc) + " (test)")
 				print("\t[",end="")
-				outfile.write(str(i) + " feature: " + str(avgacc) + " (" + str(maxk) + "-fold) / " + str(testacc) + " (test)\n\t[")
-
+				outfile.write(str(i) + " feature: " + str(avgacc) + " (" + str(maxk) + "-fold)\n\t[")
+				outfile2.write(str(i) + " feature: " + str(testacc) + " (test)\n\t[")
 				for j in range(0,len(featureslist)):
 					if (j == (len(featureslist)-1)): 
 						if (len(featureslist[j]) >= i) : 
 							outfile.write(cats[j] + ' = ' + featureslist[j][i-1] + ']\n')
+							outfile2.write(cats[j] + ' = ' + featureslist[j][i-1] + ']\n')
 							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore').decode('ascii') + ']\n',end="")
 						else:
 							outfile.write(cats[j] + ' = NONE]\n')
+							outfile2.write(cats[j] + ' = NONE]\n')
 							print(cats[j] + ' = NONE]\n',end="")
 					else:
 						if (len(featureslist[j]) >= i) : 
 							outfile.write(cats[j] + ' = ' + featureslist[j][i-1] + ', ')
+							outfile2.write(cats[j] + ' = ' + featureslist[j][i-1] + ', ')
 							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore').decode('ascii') + ', ',end="")
 						else:
 							outfile.write(cats[j] + ' = NONE, ')
+							outfile2.write(cats[j] + ' = NONE, ')
 							print(cats[j] + ' = NONE, ',end="")
 
 			else:
 				print(str(i) + " features: " + str(avgacc)+ " (" + str(maxk) + "-fold) / " + str(testacc) + " (test)")
 				print("\t[+",end="")
-				outfile.write(str(i) + " features: " + str(avgacc)+ " (" + str(maxk) + "-fold) / " + str(testacc) + " (test)\n\t[+ ")
-				
+				outfile.write(str(i) + " features: " + str(avgacc)+ " (" + str(maxk) + "-fold)\n\t[+ ")
+				outfile2.write(str(i) + " features: " + str(testacc) + " (test)\n\t[+ ")
 				for j in range(0,len(featureslist)):
 					if (j == (len(featureslist)-1)): 
 						if (len(featureslist[j]) >= i) : 
 							outfile.write(cats[j] + ' = ' + featureslist[j][i-1] + ']\n')
+							outfile2.write(cats[j] + ' = ' + featureslist[j][i-1] + ']\n')
 							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore').decode('ascii') + ']\n',end="")
 						else:
 							outfile.write(cats[j] + ' = NONE]\n')
+							outfile2.write(cats[j] + ' = NONE]\n')
 							print(cats[j] + ' = NONE]\n',end="")
 					else:
 						if (len(featureslist[j]) >= i) : 
 							outfile.write(cats[j] + ' = ' + featureslist[j][i-1] + ', ')
+							outfile2.write(cats[j] + ' = ' + featureslist[j][i-1] + ', ')
 							print(cats[j] + ' = ' + unicodedata.normalize('NFKD', featureslist[j][i-1]).encode('ascii','ignore').decode('ascii') + ', ',end="")
 						else:
 							outfile.write(cats[j] + ' = NONE, ')
+							outfile2.write(cats[j] + ' = NONE, ')
 							print(cats[j] + ' = NONE, ',end="")
 	
-	# plot the performance and store in results.pdf
+	# plot the performance on the cross validation test set and store in image file
 	plt.figure(1)
 	plt.plot(range(1,len(accuracies)+1),accuracies, 'r', label='10-fold')
-	plt.plot(range(1,len(testaccs)+1),testaccs, 'b', label='test')
 	if (maxk > 1):
 		plt.plot(range(1,len(accuracies)+1),setops, 'k--', label='_nolegend_')
 		plt.plot(range(1,len(accuracies)+1),sedowns, 'k--', label='_nolegend_')
@@ -489,22 +528,24 @@ def findOptimalFeatNmulti(trainfiles,cats,imageformat,featurefile,maxk,bestL1val
 	plt.ylim([0,100])
 	plt.xlabel('Number of features')
 	plt.ylabel('Accuracy (%)')
-	plt.savefig('results/results.'+imageformat, bbox_inches=0)
-	
-	# plot a zoomed version of the confidence interval
+	plt.savefig('results/results-crossvalidation.'+imageformat, bbox_inches=0)
+
 	plt.figure(2)
-	plt.plot(range(1,len(accuracies)+1),accuracies, 'r')
-	if (maxk > 1):
-		plt.plot(range(1,len(accuracies)+1),setops, 'k--')
-		plt.plot(range(1,len(accuracies)+1),sedowns, 'k--')
+	plt.plot(range(1,len(testaccs)+1),testaccs, 'b', label='test')
+	plt.legend(loc=3)
+	plt.ylim([0,100])
 	plt.xlabel('Number of features')
-	plt.ylabel('Accuracy (%) - based on ' + str(maxk) +'-fold cross validation')
-	plt.savefig('results/results-zoomed.'+imageformat, bbox_inches=0)
+	plt.ylabel('Accuracy (%)')
+	plt.savefig('results/results-testset.'+imageformat, bbox_inches=0)
+
 	outfile.close()
+	outfile2.close()
 	print("\nCompleted!\n")
 
-
-def generateFiles(trainfile,testfile, featurefile, exclusionfile, basename): 
+# Modifies trainingsfiles to exclude features which are specified
+# to be excluded a priori. The numerical labels of the features
+# are not changed, to not affect testing files
+def excludeFeatures(trainfile, featurefile, exclusionfile, basename): 
 	print("\n1. Excluding features from excluded.txt...",end='')
 	
 	features = []
@@ -527,13 +568,12 @@ def generateFiles(trainfile,testfile, featurefile, exclusionfile, basename):
 			outfile.write(str(i) + "\n")
 	outfile.close()
 
-	# remove lunghezzaDOC
+	# remove features which should be excluded a priori
 	os.system("./remove_fs.py tmp/included.txt < " + trainfile + " > tmp/training-" + basename+".txt") 
-
-	os.system("./remove_fs.py tmp/included.txt < " + testfile + " > tmp/testing-" + basename+".txt")
 	print(" Done!")
 
 
+tinyestpath = ""
 trainfiles = ['input/train_Journalism.parsed.grafting', 'input/train_Educational.parsed.grafting','input/train_ScientificProse.parsed.grafting','input/train_Literature.parsed.grafting'] # general training files
 cats = ['JOU','EDU','SCI','LIT']
 findOptimalFeatNmulti(trainfiles,cats,"png","input/FeatNames.txt",10,-1)
